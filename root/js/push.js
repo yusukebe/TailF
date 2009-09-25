@@ -1,9 +1,18 @@
+var timer;
 function poll_server() {
-  $('#log').load(
-    '/pushstream/',
-    function(){poll_server();}
-  );
+  $('#log').load('/pushstream/');
+}
+function setTimer(){
+  timer = setInterval("poll_server()", 1000);
 }
 $(function(){
-  poll_server();
+  setTimer();
+  $('a').hover(
+    function(){
+      clearInterval(timer);
+    },
+    function(){
+      setTimer();
+    }
+  );
 });

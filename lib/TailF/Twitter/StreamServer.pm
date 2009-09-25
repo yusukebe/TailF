@@ -12,7 +12,7 @@ has 'password' => ( is => 'rw', isa => 'Str', required => 1 );
 has 'port'  => ( is => 'rw', isa => 'Int', default => 16001 );
 has 'track' => ( is => 'rw', isa => 'Str', default => 'http' );
 has 'server' => ( is => 'ro', isa => 'Continuity', lazy_build => 1 );
-has 'docroot' => ( is => 'rw', isa => 'Str', default => './root/'  );
+has 'docroot' => ( is => 'rw', isa => 'Str', default => './root/' );
 has 'tweets' => (
     is         => 'rw',
     isa        => 'ArrayRef',
@@ -46,12 +46,17 @@ sub run {
         track    => $self->track,
         on_tweet => sub {
             my $tweet = shift;
-            if ( $tweet->{text} && $tweet->{text} =~ /[あ-んア-ン]/ ) {
+            my $text = $tweet->{text};
+            if ( $text && $text =~ /[あ-んア-ン]/ ) {
                 my @tweets = $self->tweets;
                 shift @tweets if $#tweets > 20;
+                if( $text =~ /(https?:\/\/[-_.!~*\'a-zA-Z0-9;\/?:\@&=+\$,%\#]+)/ ){
+                    my $link = $1;
+                    $text =~ s!$link!<a href="$link" target="_blank">$link</a>!;
+                }
                 push( @tweets,
                     encode(
-                        'utf8', "$tweet->{user}{screen_name}: $tweet->{text}\n"
+                        'utf8', "$tweet->{user}{screen_name}: $text"
                     ),
                 );
                 $self->tweets( \@tweets );
