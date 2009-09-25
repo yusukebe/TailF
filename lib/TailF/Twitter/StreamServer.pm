@@ -1,0 +1,90 @@
+package TailF::Twitter::StreamServer;
+use Mouse;
+use AnyEvent::Twitter::Stream;
+use Continuity;
+use Encode;
+use utf8;
+
+with 'MouseX::Getopt';
+
+has 'username' => ( is => 'rw', isa => 'Str', required => 1 );
+has 'password' => ( is => 'rw', isa => 'Str', required => 1 );
+has 'port'  => ( is => 'rw', isa => 'Int', default => 16001 );
+has 'track' => ( is => 'rw', isa => 'Str', default => 'http' );
+has 'server' => ( is => 'ro', isa => 'Continuity', lazy_build => 1 );
+has 'docroot' => ( is => 'rw', isa => 'Str', default => './root/'  );
+has 'tweets' => (
+    is         => 'rw',
+    isa        => 'ArrayRef',
+    default    => sub { [] },
+    auto_deref => 1,
+);
+
+no Mouse;
+
+sub _build_server {
+    my $self = shift;
+    return Continuity->new(
+        port           => $self->port,
+        path_session   => 1,
+        cookie_session => 'sid',
+        staticp =>
+          sub { $_[0]->url =~ m/\.(jpg|jpeg|gif|png|css|ico|js|html)$/ },
+        callback => sub { $self->main(@_) },
+        docroot => $self->docroot,
+    );
+}
+
+sub run {
+    my $self = shift;
+    my $done = AnyEvent->condvar;
+
+    my $streamer = AnyEvent::Twitter::Stream->new(
+        username => $self->username,
+        password => $self->password,
+        method   => 'filter',
+        track    => $self->track,
+        on_tweet => sub {
+            my $tweet = shift;
+            if ( $tweet->{text} && $tweet->{text} =~ /[あ-んア-ン]/ ) {
+                my @tweets = $self->tweets;
+                shift @tweets if $#tweets > 20;
+                push( @tweets,
+                    encode(
+                        'utf8', "$tweet->{user}{screen_name}: $tweet->{text}\n"
+                    ),
+                );
+                $self->tweets( \@tweets );
+            }
+        },
+        on_error => sub {
+            my $error = shift;
+            warn "ERROR: $error";
+            $done->send;
+        },
+        on_eof => sub {
+            $done->send;
+        },
+    );
+    $self->server->loop;
+    $done->recv;
+}
+
+sub main {
+    my ( $self, $req ) = @_;
+    my $path = $req->request->url->path;
+    print STDERR "Path: '$path'\n";
+    $self->pushstream($req) if $path =~ /pushstream/;
+}
+
+sub pushstream {
+    my ($self, $req) = @_;
+    while (1) {
+        my $log = join "<br />", $self->tweets;
+        $req->print($log);
+        $req->next;
+    }
+}
+
+1;
+__END__

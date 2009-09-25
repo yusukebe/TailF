@@ -1,0 +1,7 @@
+
+- run a demo
+$ perl -Ilib ./script/sample.pl -username username -password userpass
+
+- view a demo
+http://localhost:16001/stream.html
+
