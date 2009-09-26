@@ -3,6 +3,7 @@ use Mouse;
 use AnyEvent::Twitter::Stream;
 use Continuity;
 use Encode;
+use Template;
 use utf8;
 
 with 'MouseX::Getopt';
@@ -18,6 +19,13 @@ has 'tweets' => (
     isa        => 'ArrayRef',
     default    => sub { [] },
     auto_deref => 1,
+);
+has 'template' => (
+      is      => 'rw',
+      isa     => 'Template',
+      default => sub {
+          return Template->new( { INCLUDE_PATH => './tmpl/' } );
+      }
 );
 
 no Mouse;
@@ -56,13 +64,17 @@ sub run {
             if ( $text && $text =~ /[あ-んア-ン]/ ) {
                 my @tweets = $self->tweets;
                 shift @tweets if $#tweets > 20;
-                if( $text =~ /(https?:\/\/[-_.!~*\'a-zA-Z0-9;\/?:\@&=+\$,%\#]+)/ ){
+                if ( $text =~
+                    /(https?:\/\/[-_.!~*\'a-zA-Z0-9;\/?:\@&=+\$,%\#]+)/ )
+                {
                     my $link = $1;
                     $text =~ s!$link!<a href="$link" target="_blank">$link</a>!;
                 }
-                push( @tweets,
+                push(
+                    @tweets,
                     encode(
-                        'utf8', "$tweet->{user}{screen_name}: $text"
+                        'utf8',
+                        $self->templatize( { tweet => $tweet, text => $text } )
                     ),
                 );
                 $self->tweets( \@tweets );
@@ -80,6 +92,14 @@ sub run {
 
     $self->server->loop;
     $done->recv;
+}
+
+sub templatize {
+    my ( $self, $var ) = @_;
+    my $output = '';
+    $self->template->process( 'tweet.tt2', $var, \$output )
+      || die $self->template->error();
+    return $output;
 }
 
 sub main {
