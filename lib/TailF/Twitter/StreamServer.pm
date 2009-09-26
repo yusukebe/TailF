@@ -22,6 +22,12 @@ has 'tweets' => (
 
 no Mouse;
 
+$Event::DIED = sub {
+    Event::verbose_exception_handler(@_);
+    Event::unloop_all();
+    Event::loop();
+};
+
 sub _build_server {
     my $self = shift;
     return Continuity->new(
@@ -71,6 +77,7 @@ sub run {
             $done->send;
         },
     );
+
     $self->server->loop;
     $done->recv;
 }
