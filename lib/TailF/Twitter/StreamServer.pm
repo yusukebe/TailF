@@ -112,7 +112,7 @@ sub main {
 sub pushstream {
     my ($self, $req) = @_;
     while (1) {
-        my $log = join "<br />", $self->tweets;
+        my $log = join "\n", $self->tweets;
         $req->print($log);
         $req->next;
     }
