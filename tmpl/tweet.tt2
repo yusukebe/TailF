@@ -1,4 +1,6 @@
 <div class="tweet">[%- -%]
 <img src="[% tweet.user.profile_image_url | html %]" alt="" width="18" height="18" />&nbsp;[%- -%]
 <a href="http://twitter.com/[% tweet.user.screen_name | html %]" target="_blank">
-[%- tweet.user.screen_name | html %]</a>: [% text %]</div>
+[%- tweet.user.screen_name | html %]</a>: [% text -%]
+  <span class="tweet-date">[% tweet.created_at | html %]</span>
+</div>
