@@ -1,2 +1,3 @@
-html{ background-color: #000; color: #fff; }
-#ft{ margin-top: 20px; }
+iframe.stream { border: 1px solid #000; }
+#ft { margin-top: 20px; }
+div.ad { text-align:center; }
